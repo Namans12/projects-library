@@ -33,6 +33,65 @@ export function usePlaybook() {
       )
 
       scaler.style.setProperty('--hero-start-scale', String(startScale))
+
+      // The landscape hero starts full-bleed and then narrows horizontally
+      // (clip-path insets growing from both sides) until the visible window
+      // exactly matches the avatar card at its hero scale. Compute those
+      // target insets here so the curtain closes onto the card, whatever the
+      // viewport size, then expose them to the keyframes.
+      const heroCardWidth = width * startScale
+      const heroCardHeight = height * startScale
+      const clipX = Math.max(
+        0,
+        ((window.innerWidth - heroCardWidth) / 2 / window.innerWidth) * 100
+      )
+      const clipY = Math.max(
+        0,
+        ((window.innerHeight - heroCardHeight) / 2 / window.innerHeight) * 100
+      )
+      const root = document.documentElement
+      root.style.setProperty('--hero-clip-x', `${clipX.toFixed(3)}%`)
+      root.style.setProperty('--hero-clip-y', `${clipY.toFixed(3)}%`)
+
+      // Align the center cut-out avatar (a different render) onto the avatar in
+      // the hero scene using their measured face landmarks, so that at the
+      // card's hero scale the cut-out's face lands exactly on the scene's face
+      // (same position and size). The card then scales this figure straight
+      // down into its grid cell, so the alignment holds through the whole
+      // scroll. Landmarks are fractions of each source image, measured offline.
+      const HERO = { w: 1672, h: 941, faceCx: 0.459, faceCy: 0.3539, faceW: 0.1591 }
+      const CUT = { w: 1536, h: 1024, faceCx: 0.4642, faceCy: 0.3687, faceW: 0.1986 }
+      const cutAspect = CUT.w / CUT.h
+
+      const vw = window.innerWidth
+      const vh = window.innerHeight
+      // The scene is object-fit: contain in the viewport.
+      const sceneScale = Math.min(vw / HERO.w, vh / HERO.h)
+      const sceneW = HERO.w * sceneScale
+      const sceneH = HERO.h * sceneScale
+      const letterboxX = (vw - sceneW) / 2
+      const letterboxY = (vh - sceneH) / 2
+
+      // Hero face on screen.
+      const heroFaceX = letterboxX + HERO.faceCx * sceneW
+      const heroFaceY = letterboxY + HERO.faceCy * sceneH
+      const heroFaceW = HERO.faceW * sceneW
+
+      // Size the cut-out so its face width matches the hero's face width.
+      const figVisW = heroFaceW / CUT.faceW
+      const figVisH = figVisW / cutAspect
+      // Place the cut-out's face on the hero's face, then derive the figure's
+      // centre offset from the viewport centre (which is the card centre).
+      const figCenterX = heroFaceX - CUT.faceCx * figVisW + figVisW / 2
+      const figCenterY = heroFaceY - CUT.faceCy * figVisH + figVisH / 2
+      const dxVisual = figCenterX - vw / 2
+      const dyVisual = figCenterY - vh / 2
+
+      // Express in the card's base (cell) coordinates; the card's scale carries
+      // these to hero size and back down to the cell.
+      root.style.setProperty('--hero-figure-width', `${(figVisW / startScale).toFixed(2)}px`)
+      root.style.setProperty('--hero-figure-dx', `${(dxVisual / startScale).toFixed(2)}px`)
+      root.style.setProperty('--hero-figure-dy', `${(dyVisual / startScale).toFixed(2)}px`)
     }
 
     const hasScrollSupport = CSS.supports(
@@ -80,6 +139,28 @@ export function usePlaybook() {
             ease: 'power2.inOut',
           },
           0
+        )
+        // Narrow the landscape scene horizontally into the avatar card frame,
+        // then cross-fade to the card (mirrors the CSS hero-scene-narrow
+        // keyframes for browsers without scroll-driven animation support).
+        .to(
+          '.hero-scene',
+          {
+            clipPath: () => {
+              const s = getComputedStyle(document.documentElement)
+              const x = s.getPropertyValue('--hero-clip-x').trim() || '27%'
+              const y = s.getPropertyValue('--hero-clip-y').trim() || '5%'
+              return `inset(${y} ${x} ${y} ${x} round 16px)`
+            },
+            ease: 'power2.inOut',
+            duration: 0.5,
+          },
+          0
+        )
+        .to(
+          '.hero-scene',
+          { opacity: 0, ease: 'power1.out', duration: 0.12 },
+          0.5
         )
 
       const layersTl = gsap

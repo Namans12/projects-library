@@ -93,6 +93,18 @@ export const layers: Project[][] = [
 // avatar perfectly crisp with no ghosting.)
 export const avatarCutout = '/avatar-cutout.png'
 
+// The full landing hero scene: the same avatar at his desk, surrounded by the
+// lamp, books, phone and Rubik's cube. It fills the viewport on load and then
+// dissolves on scroll - the environment fades away while the avatar stays
+// locked in place - handing off to the cutout card as it shrinks into the grid.
+export const heroScene = '/hero-scene.png'
+
+// The avatar with its background removed, at the exact same framing as the
+// hero scene (same source render, same pixel positions). Because it is
+// pixel-aligned with heroScene, fading the scene out over this figure reads as
+// the desk dissolving around a stationary avatar - no ghosting, no jump.
+export const avatarFigure = '/avatar-figure.png'
+
 // Both GitHub accounts, shown on the back of the hero flip card.
 export const githubAccounts = [
   { handle: 'Namans12', href: 'https://github.com/Namans12' },
