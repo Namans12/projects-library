@@ -1,17 +1,3 @@
-/*
- * Playbook CSS scroll animation w/ subgrid
- * Faithful replica of jh3y's pen: https://codepen.io/jh3y/pen/VYZwOwd
- * Newsletter write-up: https://craftofui.substack.com/p/scrolling-a-page-out-of-the-playbook
- *
- * The heavy lifting is done with modern CSS:
- *   - cascade @layers
- *   - scroll-driven animations (animation-timeline / view-timeline / animation-range)
- *   - @property registered custom properties
- *   - subgrid
- * GSAP ScrollTrigger is only used as a fallback when the browser lacks
- * scroll-driven animation support (see ../hooks/usePlaybook.ts).
- */
-
 @import url('https://unpkg.com/normalize.css') layer(normalize);
 
 @layer normalize, base, demo, grid, setup, scroll;
@@ -138,28 +124,18 @@
       scale: 0;
     }
   }
-  @-webkit-keyframes scale-x {
+  /* The hero card starts scaled up to fill the viewport, then shrinks down to
+     its grid cell. It completes the shrink by 56% of the scroll range and then
+     holds at scale 1, so the card is exactly cell-sized — and aligned with the
+     other cards — for the whole settled portion of the scroll. */
+  @keyframes card-shrink {
     0%,
-    10% {
-      width: calc(100vw - (2 * var(--gutter)));
+    8% {
+      scale: var(--hero-start-scale, 1);
     }
-  }
-  @keyframes scale-x {
-    0%,
-    10% {
-      width: calc(100vw - (2 * var(--gutter)));
-    }
-  }
-  @-webkit-keyframes scale-y {
-    0%,
-    10% {
-      height: calc(100vh - (2 * var(--gutter)));
-    }
-  }
-  @keyframes scale-y {
-    0%,
-    10% {
-      height: calc(100vh - (2 * var(--gutter)));
+    56%,
+    100% {
+      scale: 1;
     }
   }
   @media (prefers-reduced-motion: no-preference) {
@@ -174,14 +150,11 @@
         }
 
         &[data-center='true'] {
-          .scaler img {
-            -webkit-animation-name: scale-x, scale-y;
-                    animation-name: scale-x, scale-y;
-            -webkit-animation-fill-mode: both;
-                    animation-fill-mode: both;
-            -webkit-animation-timing-function: var(--power-2-out), var(--power-1-out);
-                    animation-timing-function: var(--power-2-out), var(--power-1-out);
-            animation-timeline: --runner, --runner;
+          .scaler .flip {
+            animation-name: card-shrink;
+            animation-fill-mode: both;
+            animation-timing-function: var(--power-2-out);
+            animation-timeline: --runner;
             animation-range: entry 100% exit -20%;
           }
         }
@@ -254,20 +227,136 @@
   .scaler {
     z-index: 2;
     width: 100%;
-    height: 100%;
+    aspect-ratio: 4 / 5;
     position: relative;
+    /* Scale that makes the cell-sized card fill the viewport at the start of
+       the scroll (computed in usePlaybook from the live cell + viewport). */
+    --hero-start-scale: 1;
   }
 
-  .scaler img {
+  /* The whole card scales as one unit from --hero-start-scale down to 1 (its
+     grid-cell size), staying centered on the cell via the -50%/-50% translate.
+     Scaling the card as a unit keeps the avatar's framing fixed throughout. */
+  .scaler .flip {
     position: absolute;
     top: 50%;
     left: 50%;
     translate: -50% -50%;
-    -o-object-fit: cover;
-       object-fit: cover;
-    border-radius: 1rem;
     width: 100%;
     height: 100%;
+    scale: 1;
+    perspective: 1600px;
+    pointer-events: none;
+    transform-origin: center;
+  }
+
+  [data-settled] .scaler .flip {
+    pointer-events: auto;
+  }
+
+  [data-settled] .flip-back {
+    visibility: visible;
+  }
+
+  .flip-inner {
+    position: absolute;
+    inset: 0;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  [data-settled] .scaler .flip:is(:hover, :focus-within) .flip-inner {
+    transform: rotateY(180deg);
+  }
+
+  .flip-face {
+    position: absolute;
+    inset: 0;
+    -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+    border-radius: 1rem;
+    overflow: hidden;
+  }
+
+  /* The gray card matches avatar.png's backdrop (and the other project cards'
+     footprint). Overflow is visible so the avatar can pop past the top edge. */
+  .flip-front {
+    background: rgb(195 193 193);
+    overflow: visible;
+  }
+
+  /* The avatar is contained within the card (full figure + gray margins, like
+     avatar.png) but scaled up from its grounded bottom edge so the head lifts
+     past the card's top edge — the pop-out. The card itself stays exactly
+     cell-sized, so it still aligns with the neighbouring cards. */
+  .hero-avatar {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    -o-object-fit: contain;
+       object-fit: contain;
+    -o-object-position: 50% 100%;
+       object-position: 50% 100%;
+    scale: 1.2;
+    transform-origin: center bottom;
+    display: block;
+    pointer-events: none;
+    /* Subtle, strictly downward shadow so the popped avatar reads as 3D
+       without casting an all-around halo. */
+    -webkit-filter: drop-shadow(0 12px 14px rgb(0 0 0 / 0.22));
+            filter: drop-shadow(0 12px 14px rgb(0 0 0 / 0.22));
+  }
+
+  /* visibility (not just backface) so the links can't take keyboard focus
+     before the card has settled */
+  .flip-back {
+    visibility: hidden;
+    transform: rotateY(180deg);
+    background: #0d1117;
+    color: #fff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .flip-back .flip-title {
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+    color: rgb(255 255 255 / 0.6);
+  }
+
+  .flip-back a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    width: min(220px, 85%);
+    padding: 0.6rem 1rem;
+    border: 1px solid rgb(240 246 252 / 0.15);
+    border-radius: 0.6rem;
+    background: rgb(240 246 252 / 0.06);
+    color: #fff;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.95rem;
+    transition: background 0.2s, border-color 0.2s;
+  }
+
+  .flip-back a:is(:hover, :focus-visible) {
+    background: rgb(88 166 255 / 0.18);
+    border-color: rgb(88 166 255 / 0.5);
+  }
+
+  .flip-back a svg {
+    width: 1.1rem;
+    height: 1.1rem;
+    fill: currentColor;
+    flex: none;
   }
 }
 
@@ -363,7 +452,7 @@
   }
   h1 {
     --font-level: 8;
-    line-height: 0.6;
+    line-height: 0.9;
   }
   h2 {
     --font-level: 4;

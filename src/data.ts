@@ -86,5 +86,15 @@ export const layers: Project[][] = [
   ],
 ]
 
-export const scalerImage =
-  'https://assets.codepen.io/605876/model-shades.jpg?format=auto&quality=100'
+// The hero is the transparent avatar cutout sitting on a gray card that matches
+// the other project cards. The whole card scales down from a large hero size
+// into its grid cell as you scroll, and the avatar is sized to pop out past the
+// card's top edge. (Using one image — not a scene→cutout cross-fade — keeps the
+// avatar perfectly crisp with no ghosting.)
+export const avatarCutout = '/avatar-cutout.png'
+
+// Both GitHub accounts, shown on the back of the hero flip card.
+export const githubAccounts = [
+  { handle: 'Namans12', href: 'https://github.com/Namans12' },
+  { handle: 'namans1201', href: 'https://github.com/namans1201' },
+]
