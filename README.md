@@ -90,6 +90,15 @@ The interesting code is `styles/playbook.css` — that is where the timelines an
 - Screenshots are committed rather than generated, so they need refreshing when a project's UI changes
 - Default branch is `main`
 
+## Branches
+
+| Branch | Date | Ahead | Contents |
+|---|---|---|---|
+| `main` *(default)* | 2026-06-12 | — | Current |
+| `scroll` | 2026-06-12 | +1 | Scroll-driven hero where a landscape scene narrows and aligns into the avatar grid card — 10 files, +258/−31, plus `hero-scene.png` and `avatar-figure.png` |
+
+`scroll` extends the hero-to-grid transition this project is built around. Small and self-contained.
+
 ## Related Repositories
 
 | Repo | Relationship |
